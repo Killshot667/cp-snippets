@@ -1,0 +1,72 @@
+1. REPRESENTATION: A 32 ( or 64) - bit signed integer for up to 32 ( or 64) items. ( To avoid issues with the
+two’s complement representation, use a 32 - bit / 64 - bit signed integer to represent bitmasks of up to
+30 / 62 items only, respectively ).
+
+For example :                          5 | 4  | 3 | 2 | 1 | 0   < - 0 - based indexing from right
+32 | 16 | 8 | 4 | 2 | 1   < - power of 2
+A = 34 (base 10) =   1 | 0  | 0 | 0 | 1 | 0   < - in binary
+F | E  | D | C | B | A   < - alternative alphabet label
+In the example above, the integer A = 34 or 100010 in binary also represents a small set {1, 5} with a
+0 - based indexing scheme in increasing digit significance ( or {B, F} using the alternative alphabet
+label )because the second and the sixth bits (counting from the right) of A are on ( 1 ).
+
+2. To multiply / divide an integer by 2:
+We only need to shift the bits in the integer left / right, respectively.
+Notice that the truncation in the shift right operation automatically rounds the division - by - 2 down,
+e.g. 17 / 2  = 8.
+
+For example:         A = 34 (base 10)                  = 100010 (base 2)
+A = A << 1 = A * 2 = 68 (base 10) = 1000100 (base 2)
+A = A >> 2 = A / 4 = 17 (base 10) = 10001 (base 2)
+A = A >> 1 = A / 2 = 8 (base 10) = 1000 (base 2) < - LSB( Least Significant Bit )is gone
+
+3. Add the jth object to the subset (set the jth bit from 0 to 1):
+use the bitwise OR operation A |= (1 << j).
+
+For example:     A = 34 (base 10) = 100010 (base 2)
+j = 3, 1 << j    = 001000 < - bit ‘1’ is shifted to the left 3 times
+-------- OR (true if either of the bits is true)
+A = 42 (base 10) = 101010 (base 2) // update A to this new value 42
+
+4. Remove the jth object from the subset (set the jth bit from 1 to 0):
+use the bitwise AND operation A &= ∼(1 << j).
+
+For example:         A = 42 (base 10) = 101010 (base 2)
+j = 1, ~(1 << j) = 111101 < - ‘~’ is the bitwise NOT operation
+-------- AND
+A = 40 (base 10) = 101000 (base 2) // update A to this new value 40
+
+5. Check whether the jth object is in the subset (check whether jth bit is 1):
+use the bitwise AND operation T = A & (1 << j).
+If T = 0, then the j - th item of the set is off.
+If T != 0 (to be precise, T = (1 << j)), then the j - th item of the set is on.
+
+For example:    A = 42 (base 10) = 101010 (base 2)
+j = 3, 1 << j    = 001000 < - bit ‘1’ is shifted to the left 3 times
+-------- AND (only true if both bits are true)
+T = 8 (base 10)  = 001000 (base 2) -> not zero, the 3rd item is on
+
+6. To toggle (flip the status of) the j - th item of the set:
+use the bitwise XOR operation A ∧ = (1 << j).
+
+For example:       A = 40 (base 10) = 101000 (base 2)
+j = 2, (1 << j)  = 000100 < - bit ‘1’ is shifted to the left 2 times
+-------- XOR < - true if both bits are different
+A = 44 (base 10) = 101100 (base 2) // update A to this new value 44
+
+7. To get the value of the least significant bit that is on (first from the right):
+use T = (A & (-A)).
+
+For example:     A =  40 (base 10) = 000...000101000 (32 bits, base 2)
+- A = -40 (base 10) = 111...111011000 (two’s complement)
+---------------- - AND
+T =   8 (base 10) = 000...000001000 (3rd bit from right is on)
+
+8. To turn on all bits in a set of size n: (be careful with overflows)
+use A = (1 << n) — 1 ;
+
+9. Iterate through all subsets of a set of size n:
+`for ( x = 0; x < (1 << n); ++x )`
+
+10. Iterate through all subsets of a subset y (not including empty set) :
+`for ( x = y; x > 0; x = ( y & (x - 1) ) )`

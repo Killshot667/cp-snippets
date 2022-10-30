@@ -1,0 +1,343 @@
+struct data {
+     int x;
+ };
+ 
+ struct SEGTREE { // for range max with range addition update
+ 
+     int N;
+     vector<data> tree;
+     vector<int> lazy;
+ 
+     SEGTREE(int n)
+     {
+         N = n;
+         tree.clear();
+         tree.resize(4 * N + 3);
+         lazy.clear();
+         lazy.resize(4 * N + 3);
+     }
+ 
+     data make_data(int val)
+     {
+         data res;
+         res.x = val;
+         return res;
+     }
+ 
+     data combine(data a,data b)
+     {
+         data res;
+         res.x = max(a.x, b.x);
+         return res;
+     }
+ 
+ 
+     void push(int v) 
+     {
+         tree[v * 2].x += lazy[v];
+         lazy[v * 2] += lazy[v];
+         tree[v * 2 + 1].x += lazy[v];
+         lazy[v * 2 + 1] += lazy[v];
+         lazy[v] = 0;
+     }
+ 
+     void build(vi a, int v, int tl, int tr) 
+     {
+         if (tl == tr) {
+             tree[v] = make_data(a[tl]);
+         } else {
+             int tm = (tl + tr) / 2;
+             build(a, v * 2, tl, tm);
+             build(a, v * 2 + 1, tm + 1, tr);
+             tree[v] = combine(tree[v * 2], tree[v * 2 + 1]);
+         }
+     }
+ 
+ 
+     void update(int v, int tl, int tr, int l, int r, int val) 
+     {
+         if (l > r)
+             return;
+         if (l == tl && tr == r) {
+             tree[v].x += val;
+             lazy[v] += val;
+         } else {
+             push(v);
+             int tm = (tl + tr) / 2;
+             update(v * 2, tl, tm, l, min(r, tm), val);
+             update(v * 2 + 1, tm + 1, tr, max(l, tm + 1), r, val);
+             tree[v] = combine(tree[v * 2], tree[v * 2 + 1]);
+         }
+     }
+ 
+     // function overloading - same name, two update functions (one for range, and one for point)
+ 
+     void update(int v, int tl, int tr, int pos, int new_val) 
+     {
+         if (tl == tr) {
+             tree[v] = make_data(new_val);
+         } else {
+             int tm = (tl + tr) / 2;
+             if (pos <= tm)
+                 update(v * 2, tl, tm, pos, new_val);
+             else
+                 update(v * 2 + 1, tm + 1, tr, pos, new_val);
+             tree[v] = combine(tree[v * 2], tree[v * 2 + 1]);
+         }
+     }
+ 
+     data query(int v, int tl, int tr, int l, int r) 
+     {
+         if (l > r)
+             return make_data(-inf);
+         if (l <= tl && tr <= r)
+             return tree[v];
+         push(v);
+         int tm = (tl + tr) / 2;
+         return combine(query(v * 2, tl, tm, l, min(r, tm)),
+                        query(v * 2 + 1, tm + 1, tr, max(l, tm + 1), r));
+     }
+ 
+ };
+ 
+ 
+ 
+ 
+ 
+ 
+ // default fenwick tree for cumulative sum of int
+ struct FENWICK {
+     int N;
+     vector<int> tree;
+ 
+ 
+     // constructor
+     FENWICK(int n)
+     {
+         N = n;
+         tree.clear();
+         tree.resize(N + 1);
+     }
+ 
+     // updating the element of the array at index idx by val
+     void update(int idx, int val)
+     {
+         while (idx <= N)
+         {
+             tree[idx] += val;
+             idx += (idx & -idx);
+         }
+     }
+ 
+     // reading cumulative freq at idx (prefix sum)
+     int read(int idx)
+     {
+         int sum = 0;
+         while (idx > 0) {
+             sum += tree[idx];
+             idx -= (idx & -idx);
+         }
+         return sum;
+     }
+ 
+ 
+     // building fenwick tree. Call this first
+     void build(vector<int> a)
+     {
+         for (int i = 1; i <= N; i++)
+             update(i, a[i]);
+     }
+ 
+     // scaling all elements by c (multiply by c)
+     void scale(int c)
+     {
+         for (int i = 1; i <= N; i++)
+             tree[i] = tree[i] * c;
+     }
+ 
+     // find the value of a particular array element
+     int readSingle(int idx) 
+     {
+         int sum = tree[idx]; // this sum will be decreased
+         if (idx > 0) 
+         { // the special case
+             int z = idx - (idx & -idx);
+             idx--; // idx is not important anymore, so instead y, you can use idx
+             while (idx != z) 
+             { // at some iteration idx (y) will become z
+                 sum -= tree[idx];
+                 // substruct tree frequency which is between y and "the same path"
+                 idx -= (idx & -idx);
+             }
+         }
+         return sum;
+     }
+ 
+ 
+     //finding the index with a particular cumulative freq when the entire cumulative freq array is non-decreasing
+ 
+     // If in the tree exists more than one index with the same
+     // cumulative frequency, this procedure will return
+     // some random one of them
+ 
+     // bitMask - initialy, it is the greatest bit of MaxIdx
+     // bitMask stores the current interval that should be searched
+     int findR(int cumFre)
+     {
+         int idx = 0; // this variable will be the output
+         int bitmask = 0;
+         int temp = N / 2;
+         while (temp != 0) 
+         {
+             temp = temp / 2;
+             bitmask++;
+         }
+ 
+         while (bitmask != 0) {
+             int tIdx = idx + bitmask; // the midpoint of the current interval
+             bitmask >>= 1; // halve the current interval
+             if (tIdx > N) // avoid overflow
+                 continue;
+             if (cumFre == tree[tIdx]) // if it is equal, simply return tIdx
+                 return tIdx;
+             else if (cumFre > tree[tIdx]) {
+                 // if the tree frequency "can fit" into cumFre,
+                 // then include it
+                 idx = tIdx; // update index
+                 cumFre -= tree[tIdx]; // update the frequency for the next iteration
+             }
+         }
+         if (cumFre != 0) // maybe the given cumulative frequency doesn't exist
+             return -1;
+         else
+             return idx;
+     }
+ 
+     // If in the tree exists more than one index with a same
+     // cumulative frequency, this procedure will return
+     // the greatest one
+     int findG(int cumFre) {
+         int idx = 0;
+ 
+         int bitmask = 0;
+         int temp = N / 2;
+         while (temp != 0) 
+         {
+             temp = temp / 2;
+             bitmask++;
+         }
+ 
+ 
+         while (bitmask != 0) {
+             int tIdx = idx + bitmask;
+             bitmask >>= 1;
+             if (tIdx > N)
+                 continue;
+             if (cumFre >= tree[tIdx]) {
+                 // if the current cumulative frequency is equal to cumFre,
+                 // we are still looking for a higher index (if exists)
+                 idx = tIdx;
+                 cumFre -= tree[tIdx];
+             }
+         }
+         if (cumFre != 0)
+             return -1;
+         else
+             return idx;
+     }
+ 
+ };
+ 
+ 
+ 
+ 
+ struct SPARSE
+{
+    int N;
+    int K;
+    vector<int> lg;
+    vector<vector<int>> st;
+
+    int func(int val1, int val2)
+    {
+        int valr = max(val1, val2);
+        return valr;
+    }
+
+    SPARSE(int n)
+    {
+        N = n;
+        K = log2(N + 1);
+        st.resize(N);
+        for (int i = 0; i < N; i++)
+        {
+            st[i].resize(K + 1);
+        }
+        lg.resize(N + 1);
+    }
+
+    void build(vector<int> a)
+    {
+        for (int i = 0; i < N; i++)
+            st[i][0] = a[i];
+
+        for (int j = 1; j <= K; j++)
+            for (int i = 0; i + (1 << j) <= N; i++)
+                st[i][j] = func(st[i][j - 1], st[i + (1 << (j - 1))][j - 1]);
+
+        lg[1] = 0;
+        for (int i = 2; i <= N; i++)
+            lg[i] = lg[i / 2] + 1;
+    }
+
+    int get(int l, int r)
+    {
+        int sum = 0;
+        for (int j = K; j >= 0; j--) {
+            if ((1 << j) <= r - l + 1) {
+                sum = func(sum, st[l][j]);
+                l += (1 << j);
+            }
+        }
+    }
+
+
+    // only works for idempotent functions
+    int getFast(int l, int r)
+    {
+        int j = lg[r - l + 1];
+        int ans = func(st[l][j], st[r - (1 << j) + 1][j]);
+        return ans;
+    }
+
+
+
+};
+
+
+
+
+
+
+int lca(int a, int b)
+{
+    if(depth[a] < depth[b])
+        swap(a, b);
+    int k = depth[a] - depth[b];
+    for (int i = LOG - 1; i >= 0; i--)
+    {
+        if ((1LL << i)&k)
+            a = up[a][i];
+    }
+    assert(depth[a] == depth[b]);
+    if (a == b)
+        return a;
+    for (int i = LOG - 1; i >= 0; i--)
+    {
+        if (up[a][i] != up[b][i])
+        {   a = up[a][i];
+            b = up[b][i];
+        }
+    }
+    return up[a][0];
+}
